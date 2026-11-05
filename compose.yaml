@@ -1,0 +1,33 @@
+# Whole app on your machine: docker compose up --build
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: notes_user
+      POSTGRES_PASSWORD: dev_password # local dev only; in the cloud it's a secret
+      POSTGRES_DB: notes
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "notes_user", "-d", "notes"]
+      interval: 2s
+      retries: 15
+
+  api:
+    build: ./api
+    ports:
+      - "8000:8080"
+    environment:
+      DB_URL: postgres://notes_user:dev_password@db:5432/notes
+      CORS_ORIGIN: http://localhost:3000
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build: ./web
+    ports:
+      - "3000:8080"
+
+volumes:
+  dbdata:
